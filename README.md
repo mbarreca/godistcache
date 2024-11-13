@@ -8,13 +8,13 @@ In the current cache landscape you either have something centralized (like Redis
 
 The cache is quite performant (based on my tests, 1M Entries, M1 Pro Mac, results may vary):
 
-GET: 5M/s
-PUT: 3.5M/s
-Safe PUT: 3M/s
-Encrypted GET: 4M/s
-Encrypted PUT: 2.25M/s
-Save to file: 2.75M
-Load to file: 2M/s
+GET: 5M/s\
+PUT: 3.5M/s\
+Safe PUT: 3M/s\
+Encrypted GET: 4M/s\
+Encrypted PUT: 2.25M/s\
+Save to file: 2.75M\
+Load to file: 2M/s\
 
 This cache has zero external depedencies, only utilized built in golang libraries
 
@@ -135,7 +135,7 @@ func main() {
 
 The goal of this library is to have strong performance. RAM is cheap, compute is not. Expiration can either happen on an interval or programmatically. So we check on each get if the key has expired, if so we delete it. We also only save items that aren't expired (though the cache isn't cleared to save, again performance).
 
-### OpenTelemetry
+## OpenTelemetry
 
 Opentelemetry is intentially left out due to performance reasons. It is on the roadmap as something to potentially include as an option, but there will have to be sufficient warning that this is not a fast process.
 
