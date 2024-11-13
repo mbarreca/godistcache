@@ -33,7 +33,7 @@ Godistcache was built and tested with Go 1.23, it may still work with prior vers
 In order for the export and import to function correctly with structs, you need to register all your struct types with Gob. In the example below I've provided how you do this. It's simply a matter of `gob.register(structName{})`
 
 ## Example Usage
-`
+```
 package main
 
 import (
@@ -45,9 +45,9 @@ import (
 )
 
 type Object struct {
-	One   string  `json:"one"`
-	Two   int     `json:"two"`
-	Three float64 `json:"three"`
+	One   string
+	Two   int
+	Three float64
 }
 
 func main() {
@@ -111,7 +111,7 @@ func main() {
 
 	// Success!
 }
-`
+```
 ## Expiration
 
 The goal of this library is to have strong performance. RAM is cheap, compute is not. Expiration can either happen on an interval or programmatically. So we check on each get if the key has expired, if so we delete it. We also only save items that aren't expired (though the cache isn't cleared to save, again performance).
