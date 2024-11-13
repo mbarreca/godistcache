@@ -23,7 +23,10 @@ type Object struct {
 func TestGoDistCachePut(t *testing.T) {
 
 	// Create Cache
-	c, s, objs := cacheCreateWithObjects()
+	c, s, objs, err := cacheCreateWithObjects()
+	if err != nil {
+		t.Fatal(err)
+	}
 	start := time.Now()
 	// Testing Loading the cache
 	cacheLoad(c, s, objs)
@@ -34,7 +37,10 @@ func TestGoDistCachePut(t *testing.T) {
 
 func TestGoDistCacheSafePut(t *testing.T) {
 
-	c, s, objs := cacheCreateWithObjects()
+	c, s, objs, err := cacheCreateWithObjects()
+	if err != nil {
+		t.Fatal(err)
+	}
 	start := time.Now()
 	// Testing Loading the cache
 	cacheLoadSafe(c, s, objs)
@@ -45,7 +51,10 @@ func TestGoDistCacheSafePut(t *testing.T) {
 
 func TestGoDistCacheGet(t *testing.T) {
 
-	c, s, objs := cacheCreateWithObjects()
+	c, s, objs, err := cacheCreateWithObjects()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Load the Cache
 	cacheLoad(c, s, objs)
@@ -66,7 +75,10 @@ func TestGoDistCacheGet(t *testing.T) {
 // GoDistCache Tests
 func TestGoDistCache(t *testing.T) {
 
-	c, s, objs := cacheCreateWithObjects()
+	c, s, objs, err := cacheCreateWithObjects()
+	if err != nil {
+		t.Fatal(err)
+	}
 	// Test PUT
 	cacheLoad(c, s, objs)
 
@@ -113,7 +125,11 @@ func TestGoDistCache(t *testing.T) {
 func TestGoDistCacheSaveLoad(t *testing.T) {
 	gob.Register(Object{})
 	gob.Register(CacheItem{})
-	c, s, objs := cacheCreateWithObjects()
+	c, s, objs, err := cacheCreateWithObjects()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// Test PUT
 	cacheLoad(c, s, objs)
 	// Get current working directory
@@ -132,7 +148,10 @@ func TestGoDistCacheSaveLoad(t *testing.T) {
 	saveTime := (1 / time.Duration.Seconds(elapsed)) * float64(amountOfRuns)
 	t.Logf("Simulating Saving %d Items took %s, items per second is %f", amountOfRuns, elapsed, saveTime)
 	// Create cache copy
-	c2 := New(uint32(amountOfRuns), 0)
+	c2, err := New(0)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Benchmark Load from JSON
 	start = time.Now()
@@ -161,9 +180,46 @@ func TestGoDistCacheSaveLoad(t *testing.T) {
 		t.Fatal(err)
 	}
 }
-func cacheCreateWithObjects() (*Cache, []string, []Object) {
+
+func TestGoDistCacheCrypt(t *testing.T) {
+
+	c, s, _, err := cacheCreateWithObjects()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	start := time.Now()
+	// Load the Cache
+	cacheLoadCrypt(c, s)
+	elapsed := time.Since(start)
+	putsTime := (1 / time.Duration.Seconds(elapsed)) * float64(amountOfRuns)
+	t.Logf("Simulating %d Crypt Cache PUT Requests took %s, requests per second is %f", amountOfRuns, elapsed, putsTime)
+
+	// Wait for value to pass through buffers
+	time.Sleep(50 * time.Millisecond)
+
+	// Get Data from the Cache and verify
+	start = time.Now()
+	for i := 0; i < amountOfRuns; i++ {
+		v, err := c.GetCrypt(s[i])
+		if err != nil || v != s[i] {
+			t.Fatalf("Error: Crypt Cache Get doesn't match input values. %v", err)
+		}
+	}
+	elapsed = time.Since(start)
+	getsTime := (1 / time.Duration.Seconds(elapsed)) * float64(amountOfRuns)
+	t.Logf("Simulating %d Crypt Cache GET Requests took %s, requests per second is %f", amountOfRuns, elapsed, getsTime)
+}
+
+func cacheCreateWithObjects() (*Cache, []string, []Object, error) {
+	os.Setenv("GODIST_AES_CIPHER_KEY", "cWlW2XekajJmuZqwAFNJTXqJ28YjiiP1")
+	os.Setenv("GODIST_AES_CIPHER_IV", "Jh0VdNhFATWOPxvM")
+
 	// Create Cache
-	c := New(uint32(amountOfRuns), 0)
+	c, err := New(0)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	// Create objects
 	var objs []Object
@@ -179,7 +235,7 @@ func cacheCreateWithObjects() (*Cache, []string, []Object) {
 	for i := 0; i < amountOfRuns+1; i++ {
 		s = append(s, strconv.Itoa(i))
 	}
-	return c, s, objs
+	return c, s, objs, nil
 }
 
 func cacheCheckLoadedProperly(c *Cache, s []string, objs []Object) error {
@@ -198,6 +254,13 @@ func cacheLoad(c *Cache, s []string, objs []Object) {
 		c.Put(s[i], objs[i])
 	}
 }
+
+func cacheLoadCrypt(c *Cache, s []string) {
+	for i := 0; i < amountOfRuns; i++ {
+		c.PutCrypt(s[i], s[i])
+	}
+}
+
 func cacheLoadSafe(c *Cache, s []string, objs []Object) {
 	for i := 0; i < amountOfRuns; i++ {
 		c.PutSafe(s[i], objs[i])

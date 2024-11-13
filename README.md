@@ -2,15 +2,19 @@
 
 <div align="center">
 
+Godistcache is a general object performance oriented cache that offers saving/loading to/from a file and built-in AES encryption.
+
 In the current cache landscape you either have something centralized (like Redis or Ignite - which can be distributed) or entirely local. Theres nothing with the speed of local and power of centralized, which was the inspiration for this. The methodology of how you want to sync is left up to the user. Currently I'm providing a write to a Binary file. I have experimented with JSON, it works if you only use built in types, so it hasn't been added to the library yet.
 
-The cache is quite performant (based on my tests):
+The cache is quite performant (based on my tests, 1M Entries, M1 Pro Mac, results may vary):
 
-GET: 2-5M/s
-PUT: ~500-750k/s
-Safe PUT: ~400-600k/s
-Save to file: 300-700k/s
-Load to file: 300-450k/s
+GET: 5M/s
+PUT: 3.5M/s
+Safe PUT: 3M/s
+Encrypted GET: 4M/s
+Encrypted PUT: 2.25M/s
+Save to file: 2.75M
+Load to file: 2M/s
 
 This cache has zero external depedencies, only utilized built in golang libraries
 
@@ -31,6 +35,18 @@ Godistcache was built and tested with Go 1.23, it may still work with prior vers
 ## Register Objects
 
 In order for the export and import to function correctly with structs, you need to register all your struct types with Gob. In the example below I've provided how you do this. It's simply a matter of `gob.register(structName{})`
+
+## Environment Variables
+
+You'll need to set the following environment variables in order to provide the correct values to the system.
+
+```
+// Set these in order to setup encryption
+// Must be 32 characters
+GODIST_AES_CIPHER_KEY="KwSHE3K0jrMB6MSiQsD9DBLxZx23FHFA"
+// Must be 16 characters
+GODIST_AES_CIPHER_IV="uGwDbXeAWoihBYq1"
+```
 
 ## Example Usage
 ```
@@ -55,7 +71,10 @@ func main() {
 	gob.Register(Object{})
 
 	// Create Cache Object
-	cache := godistcache.New(0)
+	cache, err := godistcache.New(0)
+	if err != nil {
+		panic(err)
+	}
 
 	// Create sample object
 	a := Object{One: "One", Two: 2, Three: 3.3}
