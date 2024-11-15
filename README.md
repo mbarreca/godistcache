@@ -1,6 +1,8 @@
+<div align="center">
+
 # godistcache
 
-<div align="center">
+
 [![GoDoc][doc-img]][doc]
 
 Godistcache is a general object performance oriented cache that offers saving/loading to/from a file, built-in AES encryption and built in sync to an S3 compatible datastore.
