@@ -1,10 +1,11 @@
 # godistcache
 
 <div align="center">
+[![GoDoc][doc-img]][doc]
 
-Godistcache is a general object performance oriented cache that offers saving/loading to/from a file and built-in AES encryption.
+Godistcache is a general object performance oriented cache that offers saving/loading to/from a file, built-in AES encryption and built in sync to an S3 compatible datastore.
 
-In the current cache landscape you either have something centralized (like Redis or Ignite - which can be distributed) or entirely local. Theres nothing with the speed of local and power of centralized, which was the inspiration for this. The methodology of how you want to sync is left up to the user. Currently I'm providing a write to a Binary file. I have experimented with JSON, it works if you only use built in types, so it hasn't been added to the library yet.
+In the current cache landscape you either have something centralized (like Redis or Ignite - which can be distributed) or entirely local. Theres nothing with the speed of local and power of centralized, which was the inspiration for this. The methodology of how you want to sync is left up to the user. Currently I'm providing a write to a Binary file, save/load to/from an S3 compatible store with a persistance go routine. I have experimented with JSON, it works if you only use built in types, so it hasn't been added to the library yet.
 
 The cache is quite performant (based on my tests, 1M Entries, M1 Pro Mac, results may vary):
 
@@ -13,12 +14,8 @@ PUT: 3.5M/s\
 Safe PUT: 3M/s\
 Encrypted GET: 4M/s\
 Encrypted PUT: 2.25M/s\
-Save to file: 2.75M\
-Load to file: 2M/s\
-
-This cache has zero external depedencies, only utilized built in golang libraries
-
-[![GoDoc][doc-img]][doc]
+Save to file: 2.75M/s\
+Load to file: 2M/s
 
 <div align="left">
 
@@ -43,9 +40,18 @@ You'll need to set the following environment variables in order to provide the c
 ```
 // Set these in order to setup encryption
 // Must be 32 characters
-GODIST_AES_CIPHER_KEY="KwSHE3K0jrMB6MSiQsD9DBLxZx23FHFA"
+GODISTCACHE_AES_CIPHER_KEY="KwSHE3K0jrMB6MSiQsD9DBLxZx23FHFA"
 // Must be 16 characters
-GODIST_AES_CIPHER_IV="uGwDbXeAWoihBYq1"
+GODISTCACHE_AES_CIPHER_IV="uGwDbXeAWoihBYq1"
+// Backup to S3 setup
+GODISTCACHE_S3_BUCKET="test-bucket"
+GODISTCACHE_S3_OBJECT="cache.godistcache"
+GODISTCACHE_S3_ENDPOINT="https://region.domain.com"
+GODISTCACHE_S3_SSL="true"
+GODISTCACHE_S3_ACCESS_KEY="accesskey"
+GODISTCACHE_S3_SECRET_KEY="supersecretkey"
+// This is to prevent upload/download conflicts, set an ID for this instance
+GODISTCACHE_INSTANCE_ID="instance1"
 ```
 
 ## Example Usage
@@ -71,10 +77,19 @@ func main() {
 	gob.Register(Object{})
 
 	// Create Cache Object
-	cache, err := godistcache.New(0)
+	cache, err := godistcache.New(0, context.Background())
 	if err != nil {
 		panic(err)
 	}
+
+	// Create Cache Object from S3
+	cacheS3, err := NewFromS3(0, "OBJECT_KEY", context.Background())
+	if err != nil {
+	  panic(err)
+	}
+
+	// Setup Persistence to S3 every 15 minutes
+	go cacheS3.SetupPersistToS3(15 * 60, "/tmp/")
 
 	// Create sample object
 	a := Object{One: "One", Two: 2, Three: 3.3}
@@ -137,7 +152,7 @@ The goal of this library is to have strong performance. RAM is cheap, compute is
 
 ## OpenTelemetry
 
-Opentelemetry is intentially left out due to performance reasons. It is on the roadmap as something to potentially include as an option, but there will have to be sufficient warning that this is not a fast process.
+We provide some basic Otel support with the asynchronous sync to S3 functions by way of context. Currently there is no other support for telemetry though its in the roadmap.
 
 ## Testing
 `
@@ -146,10 +161,9 @@ go test -v
 
 ## Roadmap
 
-- S3 Sync
 - Better Performance in High Load Situations (10M+ entries)
 - Built in types - JSON Export
-- Telemetry Support
+- Full Telemetry Support
 
 ## License
 
